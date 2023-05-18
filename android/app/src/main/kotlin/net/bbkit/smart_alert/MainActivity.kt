@@ -1,4 +1,4 @@
-package net.bbkit.smartalert.smart_alert
+package net.bbkit.smart_alert
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="net.bbkit.smartalert.smart_alert">
+    package="net.bbkit.smart_alert">
    <application
         android:label="smart_alert"
         android:name="${applicationName}"
