@@ -1,16 +1,18 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AddDeviceScreen extends StatefulWidget {
   const AddDeviceScreen({super.key});
 
   @override
-  State<AddDeviceScreen> createState() => _AddDeviceScreen();
+  State<AddDeviceScreen> createState() => _AddDeviceScreenState();
 }
 
-class _AddDeviceScreen extends State<AddDeviceScreen> {
+class _AddDeviceScreenState extends State<AddDeviceScreen> {
   final FlutterBluePlus _flutterBlue = FlutterBluePlus.instance;
   final List<ScanResult> _scanResults = [];
   StreamSubscription? scanSubscription;
@@ -84,11 +86,52 @@ class _AddDeviceScreen extends State<AddDeviceScreen> {
     }
   }
 
+  Future<void> _showRegistrationDialog(ScanResult scanResult) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    String initialName = getDeviceDisplayName(scanResult);
+    TextEditingController nameController = TextEditingController(text: initialName);
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('登録名を設定'),
+          content: TextField(
+            controller: nameController,
+            decoration: const InputDecoration(hintText: '登録名'),
+          ),
+          actions: [
+            TextButton(
+              child: const Text('キャンセル'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            TextButton(
+              child: const Text('OK'),
+              onPressed: () {
+                String name = nameController.text.trim();
+                if (name.isEmpty) {
+                  name = 'Unknown Device';
+                }
+                String macAddress = scanResult.device.id.toString();
+                Map<String, String> deviceInfo = {'name': name, 'macAddress': macAddress};
+                String deviceInfoJson = jsonEncode(deviceInfo);
+                List<String> savedDevices = prefs.getStringList('devices') ?? [];
+                savedDevices.add(deviceInfoJson);
+                prefs.setStringList('devices', savedDevices);
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Add device"),
+        title: const Text('デバイスを追加'),
       ),
       body: ListView.builder(
         itemCount: _scanResults.length,
@@ -108,6 +151,7 @@ class _AddDeviceScreen extends State<AddDeviceScreen> {
                 Text('Type: ${device.type}'),
               ],
             ),
+            onTap: () => _showRegistrationDialog(_scanResults[index]),
           );
         },
       ),

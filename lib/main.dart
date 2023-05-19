@@ -28,7 +28,7 @@ class MyApp extends StatelessWidget {
       ),
       initialRoute: '/',
       routes: {
-        '/': (context) => const MyHomePage(title: 'Bluetooth LE Devices'),
+        '/': (context) => const MyHomePage(title: '登録済みデバイス'),
         '/add': (context) => const AddDeviceScreen(),
       },
     );
