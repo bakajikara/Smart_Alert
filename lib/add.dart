@@ -88,43 +88,75 @@ class _AddDeviceScreenState extends State<AddDeviceScreen> {
 
   Future<void> _showRegistrationDialog(ScanResult scanResult) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
-    String initialName = getDeviceDisplayName(scanResult);
-    TextEditingController nameController = TextEditingController(text: initialName);
 
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('登録名を設定'),
-          content: TextField(
-            controller: nameController,
-            decoration: const InputDecoration(hintText: '登録名'),
-          ),
-          actions: [
-            TextButton(
-              child: const Text('キャンセル'),
-              onPressed: () => Navigator.of(context).pop(),
+    String macAddress = scanResult.device.id.toString();
+    List<String> savedDevices = prefs.getStringList('devices') ?? [];
+    bool isAlreadyRegistered = savedDevices.any((deviceInfoJson) {
+      Map<String, dynamic> deviceInfo = jsonDecode(deviceInfoJson);
+      return deviceInfo['macAddress'] == macAddress;
+    });
+
+    if (isAlreadyRegistered) {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('デバイスを追加'),
+            content: const Text('すでに同じデバイスが登録されています。'),
+            actions: <Widget>[
+              TextButton(
+                child: const Text('OK'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          );
+        },
+      );
+    } else {
+      String initialName = getDeviceDisplayName(scanResult);
+      TextEditingController nameController = TextEditingController(
+          text: initialName);
+
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('登録名を設定'),
+            content: TextField(
+              controller: nameController,
+              decoration: const InputDecoration(hintText: '登録名'),
             ),
-            TextButton(
-              child: const Text('OK'),
-              onPressed: () {
-                String name = nameController.text.trim();
-                if (name.isEmpty) {
-                  name = 'Unknown Device';
-                }
-                String macAddress = scanResult.device.id.toString();
-                Map<String, String> deviceInfo = {'name': name, 'macAddress': macAddress};
-                String deviceInfoJson = jsonEncode(deviceInfo);
-                List<String> savedDevices = prefs.getStringList('devices') ?? [];
-                savedDevices.add(deviceInfoJson);
-                prefs.setStringList('devices', savedDevices);
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
+            actions: [
+              TextButton(
+                child: const Text('キャンセル'),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+              TextButton(
+                child: const Text('OK'),
+                onPressed: () {
+                  String name = nameController.text.trim();
+                  if (name.isEmpty) {
+                    name = 'Unknown Device';
+                  }
+                  Map<String, String> deviceInfo = {
+                    'name': name,
+                    'macAddress': macAddress
+                  };
+                  String deviceInfoJson = jsonEncode(deviceInfo);
+                  List<String> savedDevices = prefs.getStringList('devices') ??
+                      [];
+                  savedDevices.add(deviceInfoJson);
+                  prefs.setStringList('devices', savedDevices);
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          );
+        },
+      );
+    }
   }
 
   @override
