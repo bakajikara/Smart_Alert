@@ -26,7 +26,11 @@ class MyApp extends StatelessWidget {
         // is not restarted.
         primarySwatch: Colors.blue,
       ),
-      home: const MyHomePage(title: 'Bluetooth LE Devices'),
+      initialRoute: '/',
+      routes: {
+        '/': (context) => const MyHomePage(title: 'Bluetooth LE Devices'),
+        '/add': (context) => const AddDeviceScreen(),
+      },
     );
   }
 }
@@ -50,8 +54,67 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  FlutterBluePlus _flutterBlue = FlutterBluePlus.instance;
-  List<BluetoothDevice> _devices = [];
+  @override
+  Widget build(BuildContext context) {
+    // This method is rerun every time setState is called, for instance as done
+    // by the _incrementCounter method above.
+    //
+    // The Flutter framework has been optimized to make rerunning build methods
+    // fast, so that you can just rebuild anything that needs updating rather
+    // than having to individually change instances of widgets.
+    return Scaffold(
+      appBar: AppBar(
+        // Here we take the value from the MyHomePage object that was created by
+        // the App.build method, and use it to set our appbar title.
+        title: Text(widget.title),
+      ),
+      body: Center(
+        // Center is a layout widget. It takes a single child and positions it
+        // in the middle of the parent.
+        child: Column(
+          // Column is also a layout widget. It takes a list of children and
+          // arranges them vertically. By default, it sizes itself to fit its
+          // children horizontally, and tries to be as tall as its parent.
+          //
+          // Invoke "debug painting" (press "p" in the console, choose the
+          // "Toggle Debug Paint" action from the Flutter Inspector in Android
+          // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
+          // to see the wireframe for each widget.
+          //
+          // Column has various properties to control how it sizes itself and
+          // how it positions its children. Here we use mainAxisAlignment to
+          // center the children vertically; the main axis here is the vertical
+          // axis because Columns are vertical (the cross axis would be
+          // horizontal).
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const <Widget>[
+            Text(
+              'List of devices to scan (to be implemented)',
+            ),
+          ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.pushNamed(context, '/add');
+        },
+        tooltip: 'Add device',
+        child: const Icon(Icons.add),
+      ), // This trailing comma makes auto-formatting nicer for build methods.
+    );
+  }
+}
+
+class AddDeviceScreen extends StatefulWidget {
+  const AddDeviceScreen({super.key});
+
+  @override
+  State<AddDeviceScreen> createState() => _AddDeviceScreen();
+}
+
+class _AddDeviceScreen extends State<AddDeviceScreen> {
+  final FlutterBluePlus _flutterBlue = FlutterBluePlus.instance;
+  final List<ScanResult> _scanResults = [];
 
   @override
   void initState() {
@@ -64,9 +127,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
     if (permissionStatus.isGranted) {
       _flutterBlue.scan().listen((scanResult) {
-        if (!_devices.contains(scanResult.device)) {
+        if (!_scanResults.contains(scanResult)) {
           setState(() {
-            _devices.add(scanResult.device);
+            _scanResults.add(scanResult);
           });
         }
       });
@@ -76,11 +139,11 @@ class _MyHomePageState extends State<MyHomePage> {
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
-            title: Text('権限エラー'),
-            content: Text('位置情報の権限が必要です。アプリ設定から有効にしてください。'),
+            title: const Text('権限エラー'),
+            content: const Text('位置情報の権限が必要です。アプリ設定から有効にしてください。'),
             actions: [
               TextButton(
-                child: Text('OK'),
+                child: const Text('OK'),
                 onPressed: () => Navigator.of(context).pop(),
               ),
             ],
@@ -90,18 +153,48 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  String getDeviceDisplayName(ScanResult scanResult) {
+    final deviceName = scanResult.device.name.isEmpty ? 'Unknown Device' : scanResult.device.name;
+    final deviceUUID = scanResult.advertisementData.serviceUuids.isNotEmpty
+        ? scanResult.advertisementData.serviceUuids.first.toString()
+        : '';
+    final List<String> tileUUIDs = [
+      '0000fd84-0000-1000-8000-00805f9b34fb',
+      '0000feec-0000-1000-8000-00805f9b34fb',
+      '0000feed-0000-1000-8000-00805f9b34fb',
+      '0000067c-0000-1000-8000-00805f9b34fb'
+    ];
+    if (tileUUIDs.contains(deviceUUID)) {
+      return 'Tile';
+    } else {
+      return deviceName;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.title),
+        title: const Text("Add device"),
       ),
       body: ListView.builder(
-        itemCount: _devices.length,
+        itemCount: _scanResults.length,
         itemBuilder: (context, index) {
+          final device = _scanResults[index].device;
           return ListTile(
-            title: Text(_devices[index].name),
-            subtitle: Text(_devices[index].id.toString()),
+            title: Text(getDeviceDisplayName(_scanResults[index])),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Advertisement Data:'),
+                Text(
+                  _scanResults[index].advertisementData.toString().replaceAll(',', '\n'),
+                  style: const TextStyle(fontFamily: 'Courier'),
+                ),
+                Text('MAC Address: ${device.id}'),
+                Text('Type: ${device.type}'),
+              ],
+            ),
           );
         },
       ),
