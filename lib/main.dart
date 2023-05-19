@@ -90,6 +90,24 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  String getDeviceDisplayName(ScanResult scanResult) {
+    final deviceName = scanResult.device.name.isEmpty ? 'Unknown Device' : scanResult.device.name;
+    final deviceUUID = scanResult.advertisementData.serviceUuids.isNotEmpty
+        ? scanResult.advertisementData.serviceUuids.first.toString()
+        : '';
+    final List<String> TileUUIDs = [
+      '0000fd84-0000-1000-8000-00805f9b34fb',
+      '0000feec-0000-1000-8000-00805f9b34fb',
+      '0000feed-0000-1000-8000-00805f9b34fb',
+      '0000067c-0000-1000-8000-00805f9b34fb'
+    ];
+    if (TileUUIDs.contains(deviceUUID)) {
+      return 'Tile';
+    } else {
+      return deviceName;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -101,7 +119,7 @@ class _MyHomePageState extends State<MyHomePage> {
         itemBuilder: (context, index) {
           final device = _scanResults[index].device;
           return ListTile(
-            title: Text(_devices[index].name),
+            title: Text(getDeviceDisplayName(_scanResults[index])),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
