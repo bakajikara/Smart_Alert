@@ -37,6 +37,113 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  void _showDeviceMenu(BuildContext context, int index) {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return Wrap(
+          children: <Widget>[
+            ListTile(
+              leading: const Icon(Icons.edit),
+              title: const Text('登録名を変更'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _showChangeNameDialog(context, index);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete),
+              title: const Text('デバイスを削除'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _deleteDevice(index);
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _showChangeNameDialog(BuildContext context, int index) async {
+    TextEditingController nameController = TextEditingController();
+    nameController.text = devices[index]['name'] ?? '';
+
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('登録名を変更'),
+          content: TextField(
+            controller: nameController,
+            decoration: const InputDecoration(hintText: '登録名'),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('キャンセル'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('保存'),
+              onPressed: () {
+                String newName = nameController.text.trim();
+                if (newName.isNotEmpty) {
+                  setState(() {
+                    devices[index]['name'] = newName;
+                  });
+                  _saveDevices();
+                }
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _deleteDevice(int index) {
+    final deviceName = devices[index]['name'] ?? 'Unknown Device';
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('デバイスを削除'),
+          content: Text('デバイス $deviceName を削除しますか？'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('キャンセル'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('削除'),
+              onPressed: () {
+                setState(() {
+                  devices.removeAt(index);
+                });
+                _saveDevices();
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _saveDevices() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    List<String> deviceInfoJsonList = devices.map((deviceInfo) {
+      return jsonEncode(deviceInfo);
+    }).toList();
+    await prefs.setStringList('devices', deviceInfoJsonList);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -53,6 +160,28 @@ class _MyHomePageState extends State<MyHomePage> {
                 return ListTile(
                   title: Text(devices[index]['name'] ?? ''),
                   subtitle: Text(devices[index]['macAddress'] ?? ''),
+                  trailing: PopupMenuButton(
+                    icon: const Icon(Icons.more_vert),
+                    onSelected: (value) {
+                      if (value == 'edit') {
+                        _showChangeNameDialog(context, index);
+                      } else if (value == 'delete') {
+                        _deleteDevice(index);
+                      }
+                    },
+                    itemBuilder: (BuildContext context) {
+                      return <PopupMenuEntry<String>>[
+                        const PopupMenuItem<String>(
+                          value: 'edit',
+                          child: Text('登録名を変更'),
+                        ),
+                        const PopupMenuItem<String>(
+                          value: 'delete',
+                          child: Text('デバイスを削除'),
+                        ),
+                      ];
+                    },
+                  ),
                 );
               },
             ),
