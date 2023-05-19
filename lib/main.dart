@@ -51,7 +51,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   FlutterBluePlus _flutterBlue = FlutterBluePlus.instance;
-  List<BluetoothDevice> _devices = [];
+  List<ScanResult> _scanResults = [];
 
   @override
   void initState() {
@@ -64,9 +64,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
     if (permissionStatus.isGranted) {
       _flutterBlue.scan().listen((scanResult) {
-        if (!_devices.contains(scanResult.device)) {
+        if (!_scanResults.contains(scanResult.device)) {
           setState(() {
-            _devices.add(scanResult.device);
+            _scanResults.add(scanResult);
           });
         }
       });
@@ -97,11 +97,23 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
       ),
       body: ListView.builder(
-        itemCount: _devices.length,
+        itemCount: _scanResults.length,
         itemBuilder: (context, index) {
+          final device = _scanResults[index].device;
           return ListTile(
             title: Text(_devices[index].name),
-            subtitle: Text(_devices[index].id.toString()),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Advertisement Data:'),
+                Text(
+                  _scanResults[index].advertisementData.toString().replaceAll(',', '\n'),
+                  style: TextStyle(fontFamily: 'Courier'),
+                ),
+                Text('MAC Address: ' + device.id.toString()),
+                Text('Type: ' + device.type.toString()),
+              ],
+            ),
           );
         },
       ),
