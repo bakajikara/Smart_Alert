@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -12,6 +13,7 @@ class AddDeviceScreen extends StatefulWidget {
 class _AddDeviceScreen extends State<AddDeviceScreen> {
   final FlutterBluePlus _flutterBlue = FlutterBluePlus.instance;
   final List<ScanResult> _scanResults = [];
+  StreamSubscription? scanSubscription;
 
   @override
   void initState() {
@@ -30,7 +32,7 @@ class _AddDeviceScreen extends State<AddDeviceScreen> {
 
     if (permissionStatus.isGranted) {
       _flutterBlue.startScan();
-      _flutterBlue.scanResults.listen((scanResults) {
+      scanSubscription = _flutterBlue.scanResults.listen((scanResults) {
         for (ScanResult scanResult in scanResults) {
           if (!_scanResults.contains(scanResult)) {
             setState(() {
@@ -60,6 +62,7 @@ class _AddDeviceScreen extends State<AddDeviceScreen> {
   }
 
   void _stopScan() {
+    scanSubscription?.cancel();
     _flutterBlue.stopScan();
   }
 
