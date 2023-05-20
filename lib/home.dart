@@ -37,34 +37,6 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  void _showDeviceMenu(BuildContext context, int index) {
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext context) {
-        return Wrap(
-          children: <Widget>[
-            ListTile(
-              leading: const Icon(Icons.edit),
-              title: const Text('登録名を変更'),
-              onTap: () {
-                Navigator.of(context).pop();
-                _showChangeNameDialog(context, index);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete),
-              title: const Text('デバイスを削除'),
-              onTap: () {
-                Navigator.of(context).pop();
-                _deleteDevice(index);
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   Future<void> _showChangeNameDialog(BuildContext context, int index) async {
     TextEditingController nameController = TextEditingController();
     nameController.text = devices[index]['name'] ?? '';
