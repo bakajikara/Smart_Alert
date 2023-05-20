@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:smart_alert/home.dart';
 import 'package:smart_alert/add.dart';
 import 'package:smart_alert/settings.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() {
   runApp(const MyApp());
@@ -27,6 +28,14 @@ class MyApp extends StatelessWidget {
         // is not restarted.
         primarySwatch: Colors.blue,
       ),
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('ja', 'JP'),
+      ],
       initialRoute: '/',
       routes: {
         '/': (context) => const MyHomePage(title: '登録済みデバイス'),
