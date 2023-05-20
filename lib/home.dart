@@ -13,6 +13,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  final Key _listKey = UniqueKey();
   List<Map<String, String>> devices = [];
 
   @override
@@ -126,11 +127,14 @@ class _MyHomePageState extends State<MyHomePage> {
           ? const Center(
               child: Text('デバイスがありません'),
             )
-          : ListView.builder(
+          : ReorderableListView.builder(
+              key: _listKey,
+              onReorder: _reorderDevices,
               shrinkWrap: true,
               itemCount: devices.length,
               itemBuilder: (context, index) {
                 return ListTile(
+                  key: ValueKey(devices[index]),
                   title: Text(devices[index]['name'] ?? ''),
                   subtitle: Text(devices[index]['macAddress'] ?? ''),
                   trailing: PopupMenuButton(
@@ -167,5 +171,16 @@ class _MyHomePageState extends State<MyHomePage> {
         child: const Icon(Icons.add),
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
+  }
+
+  void _reorderDevices(int oldIndex, int newIndex) {
+    setState(() {
+      if (newIndex > oldIndex) {
+        newIndex -= 1;
+      }
+      final device = devices.removeAt(oldIndex);
+      devices.insert(newIndex, device);
+      _saveDevices();
+    });
   }
 }
