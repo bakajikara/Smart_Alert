@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:smart_alert/home.dart';
 import 'package:smart_alert/add.dart';
+import 'package:smart_alert/settings.dart';
 
 void main() {
   runApp(const MyApp());
@@ -30,6 +31,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (context) => const MyHomePage(title: '登録済みデバイス'),
         '/add': (context) => const AddDeviceScreen(),
+        '/settings': (context) => const SettingsScreen(),
       },
     );
   }
