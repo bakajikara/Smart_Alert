@@ -122,10 +122,11 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         title: Text(widget.title),
       ),
-      body: Center(
-        child: Column(
-          children: <Widget>[
-            ListView.builder(
+      body: devices.isEmpty
+          ? const Center(
+              child: Text('デバイスがありません'),
+            )
+          : ListView.builder(
               shrinkWrap: true,
               itemCount: devices.length,
               itemBuilder: (context, index) {
@@ -157,12 +158,10 @@ class _MyHomePageState extends State<MyHomePage> {
                 );
               },
             ),
-          ],
-        ),
-      ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.pushNamed(context, '/add');
+        onPressed: () async {
+          await Navigator.pushNamed(context, '/add');
+          await _loadDevices();
         },
         tooltip: 'デバイスを追加',
         child: const Icon(Icons.add),
