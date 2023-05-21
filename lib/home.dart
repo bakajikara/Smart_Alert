@@ -27,6 +27,9 @@ class _MyHomePageState extends State<MyHomePage> {
     _loadDevices();
     requestPermission();
     scanBluetoothDevices();
+    FlutterBackgroundService().on('update').listen((event) {
+      _loadDevices();
+    });
   }
 
   void requestPermission() async {
@@ -56,6 +59,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> _loadDevices() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
     List<String>? savedDevices = prefs.getStringList('devices');
     if (savedDevices != null) {
       setState(() {

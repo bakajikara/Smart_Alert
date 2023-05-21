@@ -58,6 +58,7 @@ void onStart(ServiceInstance service) async {
     if (service is AndroidServiceInstance) {
       if (await service.isForegroundService()) {
         scanBluetoothDevices();
+        service.invoke('update');
       }
     }
   });
