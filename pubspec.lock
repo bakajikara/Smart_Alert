@@ -124,7 +124,7 @@ packages:
       name: flutter_blue_plus
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "1.5.0"
+    version: "1.5.1"
   flutter_lints:
     dependency: "direct dev"
     description:
@@ -138,7 +138,7 @@ packages:
       name: flutter_local_notifications
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "14.0.1"
+    version: "14.1.0"
   flutter_local_notifications_linux:
     dependency: transitive
     description:
