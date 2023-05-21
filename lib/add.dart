@@ -13,7 +13,7 @@ class AddDeviceScreen extends StatefulWidget {
 }
 
 class _AddDeviceScreenState extends State<AddDeviceScreen> {
-  final FlutterBluePlus _flutterBlue = FlutterBluePlus.instance;
+  final FlutterBluePlus flutterBlue = FlutterBluePlus.instance;
   final List<ScanResult> _scanResults = [];
   StreamSubscription? scanSubscription;
 
@@ -33,8 +33,8 @@ class _AddDeviceScreenState extends State<AddDeviceScreen> {
     PermissionStatus permissionStatus = await Permission.location.request();
 
     if (permissionStatus.isGranted) {
-      _flutterBlue.startScan();
-      scanSubscription = _flutterBlue.scanResults.listen((scanResults) {
+      flutterBlue.startScan();
+      scanSubscription = flutterBlue.scanResults.listen((scanResults) {
         for (ScanResult scanResult in scanResults) {
           if (!_scanResults.contains(scanResult)) {
             setState(() {
@@ -65,7 +65,7 @@ class _AddDeviceScreenState extends State<AddDeviceScreen> {
 
   void _stopScan() {
     scanSubscription?.cancel();
-    _flutterBlue.stopScan();
+    flutterBlue.stopScan();
   }
 
   String getDeviceDisplayName(ScanResult scanResult) {
@@ -145,8 +145,7 @@ class _AddDeviceScreenState extends State<AddDeviceScreen> {
                     'macAddress': macAddress
                   };
                   String deviceInfoJson = jsonEncode(deviceInfo);
-                  List<String> savedDevices = prefs.getStringList('devices') ??
-                      [];
+                  List<String> savedDevices = prefs.getStringList('devices') ?? [];
                   savedDevices.add(deviceInfoJson);
                   prefs.setStringList('devices', savedDevices);
                   Navigator.of(context).pop();
