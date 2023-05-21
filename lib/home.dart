@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
@@ -62,6 +64,9 @@ class _MyHomePageState extends State<MyHomePage> {
           return {
             'name': deviceInfo['name'] as String? ?? '',
             'macAddress': deviceInfo['macAddress'] as String? ?? '',
+            'lastDetected': deviceInfo['lastDetected'] as String? ?? '',
+            'latitude': deviceInfo['latitude'] as String? ?? '',
+            'longitude': deviceInfo['longitude'] as String? ?? '',
           };
         }).toList();
       });
@@ -161,45 +166,76 @@ class _MyHomePageState extends State<MyHomePage> {
           )
         ],
       ),
-      body: devices.isEmpty
-          ? const Center(
-              child: Text('デバイスがありません'),
-            )
-          : ReorderableListView.builder(
-              key: _listKey,
-              onReorder: _reorderDevices,
-              shrinkWrap: true,
-              itemCount: devices.length,
-              itemBuilder: (context, index) {
-                return ListTile(
-                  key: ValueKey(devices[index]),
-                  title: Text(devices[index]['name'] ?? ''),
-                  subtitle: Text(devices[index]['macAddress'] ?? ''),
-                  trailing: PopupMenuButton(
-                    icon: const Icon(Icons.more_vert),
-                    onSelected: (value) {
-                      if (value == 'edit') {
-                        _showChangeNameDialog(context, index);
-                      } else if (value == 'delete') {
-                        _deleteDevice(index);
-                      }
-                    },
-                    itemBuilder: (BuildContext context) {
-                      return <PopupMenuEntry<String>>[
-                        const PopupMenuItem<String>(
-                          value: 'edit',
-                          child: Text('登録名を変更'),
+      body: RefreshIndicator(
+        onRefresh: _loadDevices,
+        child: devices.isEmpty
+            ? const Center(
+                child: Text('デバイスがありません'),
+              )
+            : ReorderableListView.builder(
+                key: _listKey,
+                onReorder: _reorderDevices,
+                itemCount: devices.length,
+                itemBuilder: (context, index) {
+                  String name = devices[index]['name'] ?? '';
+                  String macAddress = devices[index]['macAddress'] ?? '';
+                  String lastDetected = devices[index]['lastDetected'] ?? '';
+                  String latitude = devices[index]['latitude'] ?? '';
+                  String longitude = devices[index]['longitude'] ?? '';
+                  DateTime dateTime = DateTime.parse(lastDetected);
+                  String formattedDateTime = DateFormat('yyyy/MM/dd HH:mm:ss').format(dateTime);
+                  return ListTile(
+                    key: ValueKey(devices[index]),
+                    title: Text(name),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('MAC アドレス: $macAddress'),
+                        Text(
+                          '最終検出時刻: $formattedDateTime',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
                         ),
-                        const PopupMenuItem<String>(
-                          value: 'delete',
-                          child: Text('デバイスを削除'),
+                        Text(
+                          '位置情報: ($latitude, $longitude)',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
                         ),
-                      ];
+                      ],
+                    ),
+                    trailing: PopupMenuButton(
+                      icon: const Icon(Icons.more_vert),
+                      onSelected: (value) {
+                        if (value == 'edit') {
+                          _showChangeNameDialog(context, index);
+                        } else if (value == 'delete') {
+                          _deleteDevice(index);
+                        }
+                      },
+                      itemBuilder: (BuildContext context) {
+                        return <PopupMenuEntry<String>>[
+                          const PopupMenuItem<String>(
+                            value: 'edit',
+                            child: Text('登録名を変更'),
+                          ),
+                          const PopupMenuItem<String>(
+                            value: 'delete',
+                            child: Text('デバイスを削除'),
+                          ),
+                        ];
+                      },
+                    ),
+                    onTap: () {
+                      launchMap(devices[index]['latitude'], devices[index]['longitude']);
                     },
-                  ),
-                );
-              },
-            ),
+                  );
+                },
+              ),
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           await Navigator.pushNamed(context, '/add');
@@ -207,7 +243,7 @@ class _MyHomePageState extends State<MyHomePage> {
         },
         tooltip: 'デバイスを追加',
         child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      ),
     );
   }
 
@@ -220,5 +256,10 @@ class _MyHomePageState extends State<MyHomePage> {
       devices.insert(newIndex, device);
       _saveDevices();
     });
+  }
+
+  void launchMap(String? latitude, String? longitude) async {
+    final url = Uri.parse('geo:$latitude,$longitude?q=$latitude,$longitude');
+    await launchUrl(url);
   }
 }

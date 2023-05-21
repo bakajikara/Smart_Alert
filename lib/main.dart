@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:smart_alert/home.dart';
 import 'package:smart_alert/add.dart';
 import 'package:smart_alert/settings.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -69,34 +70,58 @@ void scanBluetoothDevices() async {
   SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
   final timeout = sharedPreferences.getInt('timeout') ?? 1 * 9;
 
-  List<Map<String, String>> devices = [];
+  List<Map<String, String>> allDevices = [], searchingDevices = [];
   SharedPreferences prefs = await SharedPreferences.getInstance();
   List<String>? savedDevices = prefs.getStringList('devices');
 
   if (savedDevices != null) {
-    devices = savedDevices.map((deviceInfoJson) {
+    allDevices = savedDevices.map((deviceInfoJson) {
       Map<String, dynamic> deviceInfo = jsonDecode(deviceInfoJson) as Map<String, dynamic>;
       return {
         'name': deviceInfo['name'] as String? ?? '',
         'macAddress': deviceInfo['macAddress'] as String? ?? '',
+        'lastDetected': deviceInfo['lastDetected'] as String? ?? '',
+        'latitude': deviceInfo['latitude'] as String? ?? '',
+        'longitude': deviceInfo['longitude'] as String? ?? '',
+      };
+    }).toList();
+    searchingDevices = savedDevices.map((deviceInfoJson) {
+      Map<String, dynamic> deviceInfo = jsonDecode(deviceInfoJson) as Map<String, dynamic>;
+      return {
+        'name': deviceInfo['name'] as String? ?? '',
+        'macAddress': deviceInfo['macAddress'] as String? ?? '',
+        'lastDetected': deviceInfo['lastDetected'] as String? ?? '',
+        'latitude': deviceInfo['latitude'] as String? ?? '',
+        'longitude': deviceInfo['longitude'] as String? ?? '',
       };
     }).toList();
   }
 
-  print("スキャンスタート");
-  scanSubscription = flutterBlue.scan(timeout: Duration(seconds: timeout)).listen((scanResult) {
+  scanSubscription = flutterBlue.scan(timeout: Duration(seconds: timeout)).listen((scanResult) async {
     print('Device found: ${scanResult.device.name}');
-    devices.removeWhere((device) => device["macAddress"] == scanResult.device.id.toString());
-    if (devices.isEmpty) {
-      print("リストが空になったので処理を終了しました");
+    if (searchingDevices.any((device) => device["macAddress"] == scanResult.device.id.toString())) {
+      searchingDevices.removeWhere((device) => device["macAddress"] == scanResult.device.id.toString());
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+      int deviceIndex = allDevices.indexWhere((device) => device["macAddress"] == scanResult.device.id.toString());
+      if (deviceIndex != -1) {
+        allDevices[deviceIndex]['lastDetected'] = DateTime.now().toString();
+        allDevices[deviceIndex]['latitude'] = position.latitude.toString();
+        allDevices[deviceIndex]['longitude'] = position.longitude.toString();
+        List<String> deviceInfoJsonList = allDevices.map((deviceInfo) {
+          return jsonEncode(deviceInfo);
+        }).toList();
+        await prefs.setStringList('devices', deviceInfoJsonList);
+      }
+    }
+    if (searchingDevices.isEmpty) {
       scanSubscription?.cancel();
       flutterBlue.stopScan();
       return;
     }
-    print("スキャン続行！");
   }, onDone: () {
-    print("すきゃんおしまい");
-    if (devices.isNotEmpty) {
+    if (searchingDevices.isNotEmpty) {
       print("見つからなかったデバイスがあるよ");
     }
   });

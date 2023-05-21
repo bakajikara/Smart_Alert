@@ -139,7 +139,10 @@ class _AddDeviceScreenState extends State<AddDeviceScreen> {
                   }
                   Map<String, String> deviceInfo = {
                     'name': name,
-                    'macAddress': macAddress
+                    'macAddress': macAddress,
+                    'lastDetected': DateTime.now().toString(),
+                    'latitude': '0',
+                    'longitude': '0',
                   };
                   String deviceInfoJson = jsonEncode(deviceInfo);
                   List<String> savedDevices = prefs.getStringList('devices') ?? [];
