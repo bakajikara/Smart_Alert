@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:smart_alert/main.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
@@ -20,6 +23,33 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     _loadDevices();
+    requestPermission();
+    scanBluetoothDevices();
+  }
+
+  void requestPermission() async {
+    PermissionStatus permissionStatus = await Permission.locationAlways.request();
+    if (!permissionStatus.isGranted) {
+      // 位置情報の権限が拒否された場合はエラーメッセージを表示
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('権限エラー'),
+            content: const Text('アプリ設定から位置情報へのアクセスを常に許可にしてください。'),
+            actions: [
+              TextButton(
+                child: const Text('OK'),
+                onPressed: () {
+                  Permission.locationAlways.request();
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          );
+        },
+      );
+    }
   }
 
   Future<void> _loadDevices() async {

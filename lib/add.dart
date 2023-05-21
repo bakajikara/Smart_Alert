@@ -33,14 +33,11 @@ class _AddDeviceScreenState extends State<AddDeviceScreen> {
     PermissionStatus permissionStatus = await Permission.location.request();
 
     if (permissionStatus.isGranted) {
-      flutterBlue.startScan();
-      scanSubscription = flutterBlue.scanResults.listen((scanResults) {
-        for (ScanResult scanResult in scanResults) {
-          if (!_scanResults.contains(scanResult)) {
-            setState(() {
-              _scanResults.add(scanResult);
-            });
-          }
+      flutterBlue.scan().listen((scanResult) {
+        if (!_scanResults.contains(scanResult)) {
+          setState(() {
+            _scanResults.add(scanResult);
+          });
         }
       });
     } else {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -16,6 +17,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     loadSettings();
+  }
+
+  @override
+  void dispose() {
+    final service = FlutterBackgroundService();
+    service.invoke('stopService');
+    service.startService();
+    super.dispose();
   }
 
   Future<void> loadSettings() async {

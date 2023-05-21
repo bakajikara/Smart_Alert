@@ -1,9 +1,12 @@
 import 'dart:ui';
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:smart_alert/home.dart';
 import 'package:smart_alert/add.dart';
 import 'package:smart_alert/settings.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
@@ -26,6 +29,7 @@ Future<void> initializeService() async {
 
       // auto start service
       autoStart: true,
+      autoStartOnBoot: true,
       isForegroundMode: true,
     ),
     iosConfiguration: IosConfiguration(
@@ -42,11 +46,58 @@ void onStart(ServiceInstance service) async {
   // Only available for flutter 3.0.0 and later
   DartPluginRegistrant.ensureInitialized();
 
-  Timer.periodic(const Duration(seconds: 1), (timer) async {
+  SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
+  final searchInterval = sharedPreferences.getInt('searchInterval') ?? 10;
+
+  service.on('stopService').listen((event) {
+    service.stopSelf();
+  });
+
+  Timer.periodic(Duration(seconds: searchInterval), (timer) async {
     if (service is AndroidServiceInstance) {
       if (await service.isForegroundService()) {
-        print('this is a pen!');
+        scanBluetoothDevices();
       }
+    }
+  });
+}
+
+void scanBluetoothDevices() async {
+  FlutterBluePlus flutterBlue = FlutterBluePlus.instance;
+  StreamSubscription? scanSubscription;
+
+  SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
+  final timeout = sharedPreferences.getInt('timeout') ?? 1 * 9;
+
+  List<Map<String, String>> devices = [];
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  List<String>? savedDevices = prefs.getStringList('devices');
+
+  if (savedDevices != null) {
+    devices = savedDevices.map((deviceInfoJson) {
+      Map<String, dynamic> deviceInfo = jsonDecode(deviceInfoJson) as Map<String, dynamic>;
+      return {
+        'name': deviceInfo['name'] as String? ?? '',
+        'macAddress': deviceInfo['macAddress'] as String? ?? '',
+      };
+    }).toList();
+  }
+
+  print("スキャンスタート");
+  scanSubscription = flutterBlue.scan(timeout: Duration(seconds: timeout)).listen((scanResult) {
+    print('Device found: ${scanResult.device.name}');
+    devices.removeWhere((device) => device["macAddress"] == scanResult.device.id.toString());
+    if (devices.isEmpty) {
+      print("リストが空になったので処理を終了しました");
+      scanSubscription?.cancel();
+      flutterBlue.stopScan();
+      return;
+    }
+    print("スキャン続行！");
+  }, onDone: () {
+    print("すきゃんおしまい");
+    if (devices.isNotEmpty) {
+      print("見つからなかったデバイスがあるよ");
     }
   });
 }
