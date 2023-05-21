@@ -196,7 +196,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       children: [
                         Text('MAC アドレス: $macAddress'),
                         Text(
-                          '最終検出時刻: $formattedDateTime',
+                          '最終検出: $formattedDateTime',
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey[600],

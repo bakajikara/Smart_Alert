@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'dart:async';
 import 'dart:convert';
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:smart_alert/home.dart';
 import 'package:smart_alert/add.dart';
@@ -16,8 +17,29 @@ import 'package:flutter_background_service_android/flutter_background_service_an
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeService();
+  await _initializeNotification();
 
   runApp(const MyApp());
+}
+
+FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+
+Future<void> _initializeNotification() async {
+  const DarwinInitializationSettings initializationSettingsIOS =
+  DarwinInitializationSettings(
+    requestAlertPermission: false,
+    requestBadgePermission: false,
+    requestSoundPermission: false,
+  );
+  const AndroidInitializationSettings initializationSettingsAndroid =
+  AndroidInitializationSettings('@mipmap/ic_launcher');
+
+  const InitializationSettings initializationSettings =
+  InitializationSettings(
+    android: initializationSettingsAndroid,
+    iOS: initializationSettingsIOS,
+  );
+  await _flutterLocalNotificationsPlugin.initialize(initializationSettings);
 }
 
 Future<void> initializeService() async {
@@ -69,7 +91,7 @@ void scanBluetoothDevices() async {
   StreamSubscription? scanSubscription;
 
   SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
-  final timeout = sharedPreferences.getInt('timeout') ?? 1 * 9;
+  final timeout = sharedPreferences.getInt('timeout') ?? 1;
 
   List<Map<String, String>> allDevices = [], searchingDevices = [];
   SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -100,13 +122,16 @@ void scanBluetoothDevices() async {
 
   scanSubscription = flutterBlue.scan(timeout: Duration(seconds: timeout)).listen((scanResult) async {
     print('Device found: ${scanResult.device.name}');
-    if (searchingDevices.any((device) => device["macAddress"] == scanResult.device.id.toString())) {
-      searchingDevices.removeWhere((device) => device["macAddress"] == scanResult.device.id.toString());
+    if (searchingDevices.any((device) => device['macAddress'] == scanResult.device.id.toString())) {
+      searchingDevices.removeWhere((device) => device['macAddress'] == scanResult.device.id.toString());
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
       int deviceIndex = allDevices.indexWhere((device) => device["macAddress"] == scanResult.device.id.toString());
       if (deviceIndex != -1) {
+        FlutterLocalNotificationsPlugin().cancel(
+          deviceIndex,
+        );
         allDevices[deviceIndex]['lastDetected'] = DateTime.now().toString();
         allDevices[deviceIndex]['latitude'] = position.latitude.toString();
         allDevices[deviceIndex]['longitude'] = position.longitude.toString();
@@ -123,7 +148,21 @@ void scanBluetoothDevices() async {
     }
   }, onDone: () {
     if (searchingDevices.isNotEmpty) {
-      print("見つからなかったデバイスがあるよ");
+      for (var device in searchingDevices) {
+        const androidPlatformChannelSpecifics = AndroidNotificationDetails(
+          'not_found', // 任意のチャネルIDを指定します
+          '検出されなかったデバイス', // 任意のチャネル名を指定します
+          importance: Importance.max,
+          priority: Priority.high,
+        );
+        const platformChannelSpecifics = NotificationDetails(android: androidPlatformChannelSpecifics);
+        FlutterLocalNotificationsPlugin().show(
+          allDevices.indexWhere((d) => d['macAddress'] == device['macAddress']), // 通知のID
+          '${device['name']} が見つかりません', // 通知のタイトル
+          '最終検出: ${DateFormat('yyyy/MM/dd HH:mm:ss').format(DateTime.parse(device['lastDetected']!))}', // 通知の本文
+          platformChannelSpecifics,
+        );
+      }
     }
   });
 }
