@@ -10,8 +10,9 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  int searchInterval = 10; // 初期値
+  int searchInterval = 1; // 初期値
   int timeout = 1; // 初期値
+  int notificationThreshold = 5; // 初期値
 
   @override
   void initState() {
@@ -30,8 +31,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> loadSettings() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
-      searchInterval = prefs.getInt('searchInterval') ?? 10;
+      searchInterval = prefs.getInt('searchInterval') ?? 1;
       timeout = prefs.getInt('timeout') ?? 1;
+      notificationThreshold = prefs.getInt('notificationThreshold') ?? 5;
     });
   }
 
@@ -39,6 +41,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setInt('searchInterval', searchInterval);
     await prefs.setInt('timeout', timeout);
+    await prefs.setInt('notificationThreshold', notificationThreshold);
   }
 
   Future<void> showEditDialog(String title, String settingKey, int initialValue) async {
@@ -68,6 +71,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     searchInterval = newValue;
                   } else if (settingKey == 'timeout') {
                     timeout = newValue;
+                  } else if (settingKey == 'notificationThreshold') {
+                    notificationThreshold = newValue;
                   }
                 });
                 saveSettings();
@@ -101,6 +106,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             subtitle: Text('現在の値: $timeout'),
             onTap: () {
               showEditDialog('タイムアウト', 'timeout', timeout);
+            },
+          ),
+          ListTile(
+            title: const Text('通知までの連続未検出時間 (分)'),
+            subtitle: Text('現在の値: $notificationThreshold'),
+            onTap: () {
+              showEditDialog('通知までの連続未検出時間', 'notificationThreshold', notificationThreshold);
             },
           ),
         ],

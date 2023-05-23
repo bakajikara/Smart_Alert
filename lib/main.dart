@@ -70,13 +70,13 @@ void onStart(ServiceInstance service) async {
   DartPluginRegistrant.ensureInitialized();
 
   SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
-  final searchInterval = sharedPreferences.getInt('searchInterval') ?? 10;
+  final searchInterval = sharedPreferences.getInt('searchInterval') ?? 1;
 
   service.on('stopService').listen((event) {
     service.stopSelf();
   });
 
-  Timer.periodic(Duration(seconds: searchInterval), (timer) async {
+  Timer.periodic(Duration(minutes: searchInterval), (timer) async {
     if (service is AndroidServiceInstance) {
       if (await service.isForegroundService()) {
         scanBluetoothDevices();
@@ -120,7 +120,7 @@ void scanBluetoothDevices() async {
     }).toList();
   }
 
-  scanSubscription = flutterBlue.scan(timeout: Duration(seconds: timeout)).listen((scanResult) async {
+  scanSubscription = flutterBlue.scan(timeout: Duration(minutes: timeout)).listen((scanResult) async {
     print('Device found: ${scanResult.device.name}');
     if (searchingDevices.any((device) => device['macAddress'] == scanResult.device.id.toString())) {
       searchingDevices.removeWhere((device) => device['macAddress'] == scanResult.device.id.toString());
@@ -148,20 +148,24 @@ void scanBluetoothDevices() async {
     }
   }, onDone: () {
     if (searchingDevices.isNotEmpty) {
+      final notificationThreshold = sharedPreferences.getInt('notificationThreshold') ?? 5;
+      const androidPlatformChannelSpecifics = AndroidNotificationDetails(
+        'not_found', // 任意のチャネルIDを指定します
+        '検出されなかったデバイス', // 任意のチャネル名を指定します
+        importance: Importance.max,
+        priority: Priority.high,
+      );
+      const platformChannelSpecifics = NotificationDetails(android: androidPlatformChannelSpecifics);
       for (var device in searchingDevices) {
-        const androidPlatformChannelSpecifics = AndroidNotificationDetails(
-          'not_found', // 任意のチャネルIDを指定します
-          '検出されなかったデバイス', // 任意のチャネル名を指定します
-          importance: Importance.max,
-          priority: Priority.high,
-        );
-        const platformChannelSpecifics = NotificationDetails(android: androidPlatformChannelSpecifics);
-        FlutterLocalNotificationsPlugin().show(
-          allDevices.indexWhere((d) => d['macAddress'] == device['macAddress']), // 通知のID
-          '${device['name']} が見つかりません', // 通知のタイトル
-          '最終検出: ${DateFormat('yyyy/MM/dd HH:mm:ss').format(DateTime.parse(device['lastDetected']!))}', // 通知の本文
-          platformChannelSpecifics,
-        );
+          FlutterLocalNotificationsPlugin().show(
+            allDevices.indexWhere((d) =>
+            d['macAddress'] == device['macAddress']), // 通知のID
+            '${device['name']} が見つかりません', // 通知のタイトル
+            '最終検出: ${DateFormat('yyyy/MM/dd HH:mm:ss').format(DateTime.parse(device['lastDetected']!))}', // 通知の本文
+            platformChannelSpecifics,
+          );
+        if (DateTime.now().difference(DateTime.parse(device['lastDetected']!)).inMinutes >= notificationThreshold) {
+        }
       }
     }
   });
