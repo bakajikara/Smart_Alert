@@ -120,7 +120,7 @@ void scanBluetoothDevices() async {
     }).toList();
   }
 
-  scanSubscription = flutterBlue.scan(timeout: Duration(minutes: timeout)).listen((scanResult) async {
+  scanSubscription = flutterBlue.scan(timeout: Duration(minutes: timeout) - const Duration(seconds: 1)).listen((scanResult) async {
     print('Device found: ${scanResult.device.name}');
     if (searchingDevices.any((device) => device['macAddress'] == scanResult.device.id.toString())) {
       searchingDevices.removeWhere((device) => device['macAddress'] == scanResult.device.id.toString());
