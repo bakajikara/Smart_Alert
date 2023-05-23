@@ -69,8 +69,8 @@ void onStart(ServiceInstance service) async {
   // Only available for flutter 3.0.0 and later
   DartPluginRegistrant.ensureInitialized();
 
-  SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
-  final searchInterval = sharedPreferences.getInt('searchInterval') ?? 1;
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  final searchInterval = prefs.getInt('searchInterval') ?? 1;
 
   service.on('stopService').listen((event) {
     service.stopSelf();
@@ -98,39 +98,33 @@ Future<bool> isNotificationExists(id) async {
   return false;
 }
 
+Future<List<Map<String, String>>> loadDevicesList() async {
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  List<String>? savedDevices = prefs.getStringList('devices');
+  if (savedDevices != null) {
+    return savedDevices.map((deviceInfoJson) {
+      Map<String, dynamic> deviceInfo = jsonDecode(deviceInfoJson) as Map<String, dynamic>;
+      return {
+        'name': deviceInfo['name'] as String? ?? '',
+        'macAddress': deviceInfo['macAddress'] as String? ?? '',
+        'lastDetected': deviceInfo['lastDetected'] as String? ?? '',
+        'latitude': deviceInfo['latitude'] as String? ?? '',
+        'longitude': deviceInfo['longitude'] as String? ?? '',
+      };
+    }).toList();
+  } else {
+    return [];
+  }
+}
+
 void scanBluetoothDevices() async {
   FlutterBluePlus flutterBlue = FlutterBluePlus.instance;
   StreamSubscription? scanSubscription;
 
-  SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
-  final timeout = sharedPreferences.getInt('timeout') ?? 1;
-
-  List<Map<String, String>> allDevices = [], searchingDevices = [];
   SharedPreferences prefs = await SharedPreferences.getInstance();
-  List<String>? savedDevices = prefs.getStringList('devices');
+  final timeout = prefs.getInt('timeout') ?? 1;
 
-  if (savedDevices != null) {
-    allDevices = savedDevices.map((deviceInfoJson) {
-      Map<String, dynamic> deviceInfo = jsonDecode(deviceInfoJson) as Map<String, dynamic>;
-      return {
-        'name': deviceInfo['name'] as String? ?? '',
-        'macAddress': deviceInfo['macAddress'] as String? ?? '',
-        'lastDetected': deviceInfo['lastDetected'] as String? ?? '',
-        'latitude': deviceInfo['latitude'] as String? ?? '',
-        'longitude': deviceInfo['longitude'] as String? ?? '',
-      };
-    }).toList();
-    searchingDevices = savedDevices.map((deviceInfoJson) {
-      Map<String, dynamic> deviceInfo = jsonDecode(deviceInfoJson) as Map<String, dynamic>;
-      return {
-        'name': deviceInfo['name'] as String? ?? '',
-        'macAddress': deviceInfo['macAddress'] as String? ?? '',
-        'lastDetected': deviceInfo['lastDetected'] as String? ?? '',
-        'latitude': deviceInfo['latitude'] as String? ?? '',
-        'longitude': deviceInfo['longitude'] as String? ?? '',
-      };
-    }).toList();
-  }
+  List<Map<String, String>> searchingDevices = await loadDevicesList();
 
   scanSubscription = flutterBlue.scan(timeout: Duration(minutes: timeout) - const Duration(seconds: 1)).listen((scanResult) async {
     print('Device found: ${scanResult.device.name}');
@@ -139,6 +133,7 @@ void scanBluetoothDevices() async {
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
+      List<Map<String, String>> allDevices = await loadDevicesList();
       int deviceIndex = allDevices.indexWhere((device) => device["macAddress"] == scanResult.device.id.toString());
       if (deviceIndex != -1) {
         flutterLocalNotificationsPlugin.cancel(
@@ -160,7 +155,8 @@ void scanBluetoothDevices() async {
     }
   }, onDone: () async {
     if (searchingDevices.isNotEmpty) {
-      final notificationThreshold = sharedPreferences.getInt('notificationThreshold') ?? 5;
+      List<Map<String, String>> allDevices = await loadDevicesList();
+      final notificationThreshold = prefs.getInt('notificationThreshold') ?? 5;
       const androidPlatformChannelSpecifics = AndroidNotificationDetails(
         'not_found', // 任意のチャネルIDを指定します
         '検出されなかったデバイス', // 任意のチャネル名を指定します
