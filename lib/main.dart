@@ -22,7 +22,7 @@ Future<void> main() async {
   runApp(const MyApp());
 }
 
-FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
 Future<void> _initializeNotification() async {
   const DarwinInitializationSettings initializationSettingsIOS =
@@ -39,7 +39,7 @@ Future<void> _initializeNotification() async {
     android: initializationSettingsAndroid,
     iOS: initializationSettingsIOS,
   );
-  await _flutterLocalNotificationsPlugin.initialize(initializationSettings);
+  await flutterLocalNotificationsPlugin.initialize(initializationSettings);
 }
 
 Future<void> initializeService() async {
@@ -88,7 +88,7 @@ void onStart(ServiceInstance service) async {
 
 Future<bool> isNotificationExists(id) async {
   // 現在のアクティブな通知のリストを取得
-  final List<ActiveNotification> activeNotifications = await FlutterLocalNotificationsPlugin().getActiveNotifications();
+  final List<ActiveNotification> activeNotifications = await flutterLocalNotificationsPlugin.getActiveNotifications();
   // チャンネルIDに一致する通知が存在するかどうかを確認
   for (final notification in activeNotifications) {
     if (notification.id == id) {
@@ -101,8 +101,6 @@ Future<bool> isNotificationExists(id) async {
 void scanBluetoothDevices() async {
   FlutterBluePlus flutterBlue = FlutterBluePlus.instance;
   StreamSubscription? scanSubscription;
-
-  FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
   SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
   final timeout = sharedPreferences.getInt('timeout') ?? 1;
